@@ -11,7 +11,7 @@ enum {
     LEPT_PARSE_OK = 0,
     LEPT_PARSE_EXPECT_VALUE,
     LEPT_PARSE_INVALID_VALUE,
-    LEPT_PARSE_ROOT_NOT_SINGULAR
+    LEPT_PARSE_ROOT_NOT_SINGULAR 
 };
 
 int lept_parse(lept_value* v, const char* json);
