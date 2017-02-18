@@ -238,7 +238,7 @@ static void test_parse_invalid_value() {
 
         /* invalid value in array */
 #if 1
-    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "[1,]");
+    TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "[1,]"); 
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "[\"a\", nul]");
 #endif
 }
