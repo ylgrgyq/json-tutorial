@@ -113,7 +113,15 @@ static void test_parse_string() {
     TEST_STRING("Hello", "\"Hello\"");
     TEST_STRING("Hello\nWorld", "\"Hello\\nWorld\"");
     TEST_STRING("\" \\ / \b \f \n \r \t", "\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"");
+
+    TEST_STRING("\x24", "\"\\u0024\"");         /* Dollar sign U+0024 */
+    TEST_STRING("\xC2\xA2", "\"\\u00A2\"");     /* Cents sign U+00A2 */
+    TEST_STRING("\xE2\x82\xAC", "\"\\u20AC\""); /* Euro sign U+20AC */
+    TEST_STRING("\xF0\x9D\x84\x9E", "\"\\uD834\\uDD1E\"");  /* G clef sign U+1D11E */
+    TEST_STRING("\xF0\x9D\x84\x9E", "\"\\ud834\\udd1e\"");  /* G clef sign U+1D11E */
 }
+
+
 
 #define TEST_ERROR(error, json)\
     do {\
@@ -176,6 +184,18 @@ static void test_parse_invalid_string_char() {
     TEST_ERROR(LEPT_PARSE_INVALID_STRING_CHAR, "\"\x1F\"");
 }
 
+static void test_parse_invalid_hex_code() {
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\u0");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\u123");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX, "\"\\u123z");
+}
+
+static void test_parse_invalid_unicode_surrogate() {
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uD800");
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uD8341");   
+    TEST_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE, "\"\\uD834\\uED1E");   
+}
+
 static void test_access_null() {
     lept_value v;
     lept_init(&v);
@@ -228,6 +248,8 @@ static void test_parse() {
     test_parse_missing_quotation_mark();
     test_parse_invalid_string_escape();
     test_parse_invalid_string_char();
+    test_parse_invalid_hex_code();
+    test_parse_invalid_unicode_surrogate();
 
     test_access_null();
     test_access_boolean();
