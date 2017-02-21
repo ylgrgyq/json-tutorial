@@ -138,7 +138,7 @@ static int lept_parse_string_raw(lept_context* c, char** rc, size_t* rlen) {
         switch (ch) {
             case '\"':
                 len = c->top - head;
-                *rc = (const char*)lept_context_pop(c, len);
+                *rc = (char*)lept_context_pop(c, len);
                 *rlen = len;
                 c->json = p;
                 return LEPT_PARSE_OK;
@@ -245,6 +245,8 @@ static int lept_parse_object(lept_context* c, lept_value* v) {
     int ret;
     char* k;
     size_t klen;
+    lept_member m;
+    m.key = NULL;
     EXPECT(c, '{');
     lept_parse_whitespace(c);
     if (*c->json == '}') {
@@ -255,12 +257,9 @@ static int lept_parse_object(lept_context* c, lept_value* v) {
         return LEPT_PARSE_OK;
     }
 
-    printf("start parse %c rest %s\n", *c->json, c->json);
-
     for (;;) {
-        lept_member m;
+        lept_init(&m.v);
 
-        printf("current %c rest %s\n", *c->json, c->json);
         if (*c->json != '"') {
             ret = LEPT_PARSE_MISS_KEY;
             break;
@@ -276,23 +275,18 @@ static int lept_parse_object(lept_context* c, lept_value* v) {
 
         lept_parse_whitespace(c);
         if (*c->json != ':') {
-            free(m.key);
             ret = LEPT_PARSE_MISS_COLON;
             break;
         }
 
         c->json++;
         lept_parse_whitespace(c);
-        lept_value e;
-        lept_init(&e);
-        
-        if ((ret = lept_parse_value(c, &e)) != LEPT_PARSE_OK) {
-            free(m.key);
+        if ((ret = lept_parse_value(c, &m.v)) != LEPT_PARSE_OK) {
             break;
         }
         
-        memcpy((m.v = (lept_value*)malloc(sizeof(lept_value))), &e, sizeof(lept_value));
         memcpy(lept_context_push(c, sizeof(lept_member)), &m, sizeof(lept_member));
+        m.key = NULL;
         size++;
         lept_parse_whitespace(c);
         if (*c->json == ',') {
@@ -313,11 +307,13 @@ static int lept_parse_object(lept_context* c, lept_value* v) {
         }
     }
 
+    if (m.key != NULL)
+        free(m.key);
+
     for (i = 0; i < size; ++i) {
         lept_member* pm = lept_context_pop(c, sizeof(lept_member));
         free(pm->key);
-        lept_free(pm->v);
-        free(pm->v);
+        lept_free(&pm->v);
     }
 
     return ret;
@@ -371,8 +367,7 @@ void lept_free(lept_value* v) {
             break;
         case LEPT_OBJECT:
             for (i = 0; i < v->u.o.size; i++) {
-                lept_free(v->u.o.m[i].v);
-                free(v->u.o.m[i].v);
+                lept_free(&v->u.o.m[i].v);
                 free(v->u.o.m[i].key);
             }
             free(v->u.o.m);
@@ -458,5 +453,5 @@ size_t lept_get_object_key_size(const lept_value* v, size_t index) {
 lept_value* lept_get_object_value(const lept_value* v, size_t index) {
     assert(v != NULL && v->type == LEPT_OBJECT);
     assert(index < v->u.o.size);
-    return v->u.o.m[index].v;
+    return &v->u.o.m[index].v;
 }

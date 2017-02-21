@@ -22,7 +22,7 @@ struct lept_member
 {
     char* key;
     size_t klen;
-    lept_value* v;
+    lept_value v;
 };
 
 enum {
