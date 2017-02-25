@@ -415,12 +415,49 @@ static void test_access() {
     test_access_string();
 }
 
+#define TEST_ROUNDTRIP(json, t)\
+    do {\
+        lept_value v;\
+        char* output;\
+        size_t length;\
+        lept_init(&v);\
+        EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, json));\
+        EXPECT_EQ_INT(t, lept_get_type(&v));\
+        EXPECT_EQ_INT(LEPT_STRINGFY_OK, lept_stringify(&v, &output, &length));\
+        EXPECT_EQ_STRING(json, output, length);\
+        lept_free(&v);\
+        free(output);\
+    } while(0)
+
+static void test_stringify() {
+    TEST_ROUNDTRIP("null", LEPT_NULL);
+    TEST_ROUNDTRIP("false", LEPT_FALSE);
+    TEST_ROUNDTRIP("true", LEPT_TRUE);
+    TEST_ROUNDTRIP("32", LEPT_NUMBER);
+    TEST_ROUNDTRIP("[false,false,true]", LEPT_ARRAY);
+    TEST_ROUNDTRIP("{}", LEPT_OBJECT);
+    TEST_ROUNDTRIP("{\"hello\":false,\"world\":true}", LEPT_OBJECT);
+    TEST_ROUNDTRIP("\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"", LEPT_STRING);
+    TEST_ROUNDTRIP("\"Hello world $\"", LEPT_STRING);
+    TEST_ROUNDTRIP("\"\\u0024\"", LEPT_STRING);
+    TEST_ROUNDTRIP("\"\\u00A2\"", LEPT_STRING);
+    TEST_ROUNDTRIP("\"\\u20AC\"", LEPT_STRING);
+    TEST_ROUNDTRIP("\"\\uD834\\uDD1E\"", LEPT_STRING);
+
+    TEST_STRING("\x24", "\"\\u0024\"");         /* Dollar sign U+0024 */
+    TEST_STRING("\xC2\xA2", "\"\\u00A2\"");     /* Cents sign U+00A2 */
+    TEST_STRING("\xE2\x82\xAC", "\"\\u20AC\""); /* Euro sign U+20AC */
+    TEST_STRING("\xF0\x9D\x84\x9E", "\"\\uD834\\uDD1E\"");  /* G clef sign U+1D11E */
+    TEST_STRING("\xF0\x9D\x84\x9E", "\"\\ud834\\udd1e\"");  /* G clef sign U+1D11E */
+}
+
 int main() {
 #ifdef _WINDOWS
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
     test_parse();
     test_access();
+    test_stringify();
     printf("%d/%d (%3.2f%%) passed\n", test_pass, test_count, test_pass * 100.0 / test_count);
     return main_ret;
 }
